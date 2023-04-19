@@ -23,6 +23,9 @@
 #include "Blueprint/WidgetTree.h"
 #include "Engine/Blueprint.h"
 #include "Interfaces/IPluginManager.h"
+//<--- modified by wangxu
+#include "Engine/UserDefinedStruct.h"
+//--->end
 
 #define LOCTEXT_NAMESPACE "UnLuaIntelliSenseGenerator"
 
@@ -56,13 +59,17 @@ void FUnLuaIntelliSenseGenerator::UpdateAll()
     const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
     FARFilter Filter;
+    //<--- modified by wangxu
 #if UE_VERSION_OLDER_THAN(5, 1, 0)
-    Filter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
-    Filter.ClassNames.Add(UWidgetBlueprint::StaticClass()->GetFName());
+    Filter.ClassPaths.Add(UBlueprint::StaticClass()->GetClassPathName());
+    Filter.ClassPaths.Add(UWidgetBlueprint::StaticClass()->GetClassPathName());
+    Filter.ClassPaths.Add(UUserDefinedEnum::StaticClass()->GetClassPathName());
+    Filter.ClassPaths.Add(UUserDefinedStruct::StaticClass()->GetClassPathName());
 #else
     Filter.ClassPaths.Add(UBlueprint::StaticClass()->GetClassPathName());
     Filter.ClassPaths.Add(UWidgetBlueprint::StaticClass()->GetClassPathName());
 #endif
+    //--->end
 
     TArray<FAssetData> BlueprintAssets;
     TArray<const UField*> NativeTypes;
@@ -77,11 +84,21 @@ void FUnLuaIntelliSenseGenerator::UpdateAll()
 
     FScopedSlowTask SlowTask(TotalCount, LOCTEXT("GeneratingBlueprintsIntelliSense", "Generating Blueprints InstelliSense"));
     SlowTask.MakeDialog();
-
+    //<--- modified by wangxu
+    UnLua::IntelliSense::GenDelegates.Empty();
+    //--->end
     for (int32 i = 0; i < BlueprintAssets.Num(); i++)
     {
         if (SlowTask.ShouldCancel())
             break;
+        //<--- modified by wangxu
+        if (const auto Object = BlueprintAssets[i].GetAsset()) {
+            if (Object->IsA<UUserDefinedEnum>() || Object->IsA<UUserDefinedStruct>()) {
+                NativeTypes.Emplace(Cast<UField>(Object));
+                continue;
+            }
+        }
+        //--->end
         OnAssetUpdated(BlueprintAssets[i]);
         SlowTask.EnterProgressFrame();
     }
@@ -91,7 +108,11 @@ void FUnLuaIntelliSenseGenerator::UpdateAll()
         if (SlowTask.ShouldCancel())
             break;
 
-        Export(Type);
+        //<--- modified by wangxu
+        if (Type != UClass::StaticClass()) {
+            Export(Type);
+        }
+        //--->end
         SlowTask.EnterProgressFrame();
     }
 

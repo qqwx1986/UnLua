@@ -1,24 +1,20 @@
 --
 -- DESCRIPTION
---
+-- @SEE ${blueprint}
 -- @COMPANY **
--- @AUTHOR **
+-- @AUTHOR ${creator}
 -- @DATE ${date} ${time}
 --
+---@class TemplateName : ${ParentClass}
+---@field Overridden ${ParentClass} @dot Native Blueprint Interface, use like self.Overridden.BlueprintFunc(self)
+---@type TemplateName
+local TemplateName = UnLua.Class()
 
----@type ClassName
-local M = UnLua.Class()
 
---function M:Initialize(Initializer)
---end
-
---function M:PreConstruct(IsDesignTime)
---end
-
--- function M:Construct()
+-- function TemplateName:Construct()
+-- end
+-- function TemplateName:Destruct()
 -- end
 
---function M:Tick(MyGeometry, InDeltaTime)
---end
 
-return M
+return TemplateName

@@ -1,27 +1,27 @@
 --
 -- DESCRIPTION
---
+-- @SEE ${blueprint}
 -- @COMPANY **
--- @AUTHOR **
+-- @AUTHOR ${creator}
 -- @DATE ${date} ${time}
 --
 
----@type ClassName
-local M = UnLua.Class()
+---@type TemplateName
+local TemplateName = UnLua.Class()
 
--- function M:Initialize(Initializer)
+-- function TemplateName:Initialize(Initializer)
 -- end
 
--- function M:BlueprintInitializeAnimation()
+-- function TemplateName:BlueprintInitializeAnimation()
 -- end
 
--- function M:BlueprintBeginPlay()
+-- function TemplateName:BlueprintBeginPlay()
 -- end
 
--- function M:BlueprintUpdateAnimation(DeltaTimeX)
+-- function TemplateName:BlueprintUpdateAnimation(DeltaTimeX)
 -- end
 
--- function M:BlueprintPostEvaluateAnimation()
+-- function TemplateName:BlueprintPostEvaluateAnimation()
 -- end
 
-return M
+return TemplateName

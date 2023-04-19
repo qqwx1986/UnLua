@@ -156,7 +156,9 @@ void FUnLuaEditorToolbar::BindToLua_Executed() const
     const auto bIsAltDown = ModifierKeys.IsLeftAltDown() || ModifierKeys.IsRightAltDown();
     if (bIsAltDown)
     {
-        const auto Package = Blueprint->GetTypedOuter(UPackage::StaticClass());
+        //<--- modified by wangxu
+        const auto Package = Blueprint->GetPackage();
+        //--->end
         LuaModuleName = Package->GetName().RightChop(6).Replace(TEXT("/"), TEXT("."));
     }
     else
@@ -295,8 +297,15 @@ void FUnLuaEditorToolbar::CreateLuaTemplate_Executed()
 
         FString Content;
         FFileHelper::LoadFileToString(Content, *FullFilePath);
+        //<--- modified by wangxu
+        const FDateTime DateTime = FDateTime::Now();
         Content = Content.Replace(TEXT("TemplateName"), *TemplateName)
-                         .Replace(TEXT("ClassName"), *UnLua::IntelliSense::GetTypeName(Class));
+                         .Replace(TEXT("${ParentClass}"), *UnLua::IntelliSense::GetTypeName(Class))
+                         .Replace(TEXT("${blueprint}"),*Blueprint->GetPathName())
+                         .Replace(TEXT("${creator}"),FPlatformProcess::UserName())
+                        .Replace(TEXT("${date}"),*DateTime.ToString(TEXT("%Y-%m-%d")))
+                        .Replace(TEXT("${time}"),*DateTime.ToString(TEXT("%H:%M:%S")));
+        //--->end
 
         FFileHelper::SaveStringToFile(Content, *FileName, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
         break;

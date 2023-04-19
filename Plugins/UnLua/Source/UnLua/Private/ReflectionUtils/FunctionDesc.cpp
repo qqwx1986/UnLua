@@ -340,12 +340,8 @@ int32 FFunctionDesc::CallUE(lua_State *L, int32 NumParams, void *Userdata)
 #if ENABLE_TYPE_CHECK && WITH_EDITOR
     if (!Object->IsA(FinalFunction->GetOuterUClass()))
     {
-        if(!Object->GetClass()->ImplementsInterface(FinalFunction->GetOuterUClass()))
-        {
-            return luaL_error(L, "attempt to call UFunction '%s' on invalid self type. '%s' required but got '%s'.",
-                              TCHAR_TO_UTF8(*FuncName), TCHAR_TO_UTF8(*FinalFunction->GetOuterUClass()->GetName()), TCHAR_TO_UTF8(*Object->GetClass()->GetName()));
-
-        }
+        return luaL_error(L, "attempt to call UFunction '%s' on invalid self type. '%s' required but got '%s'.",
+                          TCHAR_TO_UTF8(*FuncName), TCHAR_TO_UTF8(*FinalFunction->GetOuterUClass()->GetName()), TCHAR_TO_UTF8(*Object->GetClass()->GetName()));
     }
 #endif
 

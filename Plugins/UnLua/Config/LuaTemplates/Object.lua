@@ -1,12 +1,14 @@
 --
 -- DESCRIPTION
---
+-- @SEE ${blueprint}
 -- @COMPANY **
--- @AUTHOR **
+-- @AUTHOR ${creator}
 -- @DATE ${date} ${time}
 --
+---@class TemplateName : ${ParentClass}
+---@field Overridden ${ParentClass} @dot Native Blueprint Interface, use like self.Overridden.BlueprintFunc(self)
+---@type TemplateName
+local TemplateName = UnLua.Class()
 
----@type ClassName
-local M = UnLua.Class()
 
-return M
+return TemplateName

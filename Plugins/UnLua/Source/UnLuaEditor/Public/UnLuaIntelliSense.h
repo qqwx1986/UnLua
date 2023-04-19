@@ -49,5 +49,9 @@ namespace UnLua
         UNLUAEDITOR_API bool IsValid(const UFunction* Function);
 
         UNLUAEDITOR_API bool IsValidFunctionName(const FString Name);
+                
+        //<--- modified by wangxu
+        extern TSet<FString> GenDelegates;
+        //--->end
     }
 }

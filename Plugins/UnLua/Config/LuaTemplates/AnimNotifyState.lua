@@ -1,21 +1,21 @@
 --
 -- DESCRIPTION
---
+-- @SEE ${blueprint}
 -- @COMPANY **
--- @AUTHOR **
+-- @AUTHOR ${creator}
 -- @DATE ${date} ${time}
 --
 
----@type ClassName
-local M = UnLua.Class()
+---@type TemplateName
+local TemplateName = UnLua.Class()
 
--- function M:Received_NotifyBegin(MeshComp, Animation, TotalDuration)
+-- function TemplateName:Received_NotifyBegin(MeshComp, Animation, TotalDuration)
 -- end
 
--- function M:Received_NotifyTick(MeshComp, Animation, FrameDeltaTime)
+-- function TemplateName:Received_NotifyTick(MeshComp, Animation, FrameDeltaTime)
 -- end
 
--- function M:Received_NotifyEnd(MeshComp, Animation)
+-- function TemplateName:Received_NotifyEnd(MeshComp, Animation)
 -- end
 
-return M
+return TemplateName

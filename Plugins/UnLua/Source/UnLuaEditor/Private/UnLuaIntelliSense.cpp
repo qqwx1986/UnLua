@@ -17,11 +17,19 @@
 #include "Binding.h"
 #include "ObjectEditorUtils.h"
 #include "UnLuaInterface.h"
+//<--- modified by wangxu
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+//--->end
 
 namespace UnLua
 {
     namespace IntelliSense
     {
+        //<--- modified by wangxu
+        static FString AdditionalContent;
+        TSet<FString> GenDelegates;
+        //--->end
         static const FName NAME_ToolTip(TEXT("ToolTip")); // key of ToolTip meta data
         static const FName NAME_LatentInfo = TEXT("LatentInfo"); // tag of latent function
         static FString LuaKeywords[] = {TEXT("local"), TEXT("function"), TEXT("end")};
@@ -63,7 +71,14 @@ namespace UnLua
             const int32 Num = Enum->NumEnums();
             for (int32 i = 0; i < Num; ++i)
             {
-                Ret += FString::Printf(TEXT("\r\n---@field %s %s %s"), TEXT("public"), *Enum->GetNameStringByIndex(i), TEXT("integer"));
+                //<--- modified by wangxu
+                FString EnumFiledName = Enum->GetNameStringByIndex(i);
+                FString Description = Enum->GetToolTipTextByIndex(i).ToString();
+                if (const auto UserDefinedEnum = Cast<UUserDefinedEnum>(Enum); UserDefinedEnum && i != Num - 1) {
+                    EnumFiledName = UserDefinedEnum->GetDisplayNameTextByIndex(i).ToString();
+                }
+                Ret += FString::Printf(TEXT("\r\n---@field %s %s %s @[%d]%s"), TEXT("public"), *EnumFiledName, TEXT("integer"),i,*Description);
+                //--->end
             }
 
             // declaration
@@ -91,6 +106,10 @@ namespace UnLua
 
         FString Get(const UScriptStruct* ScriptStruct)
         {
+            //<--- modified by wangxu
+            AdditionalContent.Empty();
+            //--->end
+
             FString Ret = GetCommentBlock(ScriptStruct);
 
             FString TypeName = GetTypeName(ScriptStruct);
@@ -110,11 +129,23 @@ namespace UnLua
             // declaration
             Ret += FString::Printf(TEXT("local %s = {}\r\n"), *EscapeSymbolName(TypeName));
 
+            //<--- modified by wangxu
+            if(!AdditionalContent.IsEmpty())
+            {
+                Ret += AdditionalContent;
+                Ret += "\r\n";
+            }
+            //--->end
+
             return Ret;
         }
 
         FString Get(const UClass* Class)
         {
+            //<--- modified by wangxu
+            AdditionalContent.Empty();
+            //--->end
+
             FString Ret = GetCommentBlock(Class);
 
             const FString TypeName = GetTypeName(Class);
@@ -164,22 +195,130 @@ namespace UnLua
                 Ret += Get(Function, EscapedClassName) + "\r\n";
             }
 
+            //<--- modified by Yongquan Fan
             // exported functions
-            const auto Exported = GetExportedReflectedClasses().Find(TypeName);
+            const auto Exported = GetExportedReflectedClasses().FindRef(TypeName);
             if (Exported)
             {
                 TArray<IExportedFunction*> ExportedFunctions;
-                (*Exported)->GetFunctions(ExportedFunctions);
+                Exported->GetFunctions(ExportedFunctions);
                 for (const auto Function : ExportedFunctions)
                     Function->GenerateIntelliSense(Ret);
             }
+            //---> end
+            //<--- modified by wangxu
+            Ret += FString::Printf(TEXT(R"(
+---@return UClass
+function %s.StaticClass() end)"), *TypeName);
+
+            if (Class == UWorld::StaticClass()) {
+                Ret += FString::Printf(TEXT(R"(
+---@generic T : AActor
+---@param ActorClass UClass<T>
+---@param Transform FTransform
+---@param SpawnMethod ESpawnActorCollisionHandlingMethod
+---@param OwnerActor AActor
+---@param Instigator APawn
+---@param BindTableName string
+---@param BindTable table @Optional
+---@param OverrideLevel ULevel @Optional
+---@param ActorName string @Optional
+function UWorld:SpawnActor(ActorClass, Transform, SpawnMethod, OwnerActor, Instigator, BindTableName, BindTable, OverrideLevel, ActorName) end
+
+---@generic T : AActor
+---@param ActorClass UClass<T>
+---@param Transform FTransform
+---@param BindTable table @Optional
+---@param BindTableName string
+---@param ActorSpawnParameters FActorSpawnParameters
+---@return T
+function UWorld:SpawnActorEx(ActorClass, Transform, BindTable, BindTableName, ActorSpawnParameters) end
+
+---@class FActorSpawnParameters
+---@field public Name string @A name to assign as the Name of the Actor being spawned. If no value is specified, the name of the spawned Actor will be automatically generated using the form [Class]_[Number].
+---@field public Template AActor @An Actor to use as a template when spawning the new Actor. The spawned Actor will be initialized using the property values of the template Actor. If left NULL the class default object (CDO) will be used to initialize the spawned Actor.
+---@field public Owner AActor @The Actor that spawned this Actor. (Can be left as NULL).
+---@field public Instigator APawn @The APawn that is responsible for damage done by the spawned Actor. (Can be left as NULL).
+---@field public OverrideLevel ULevel @The ULevel to spawn the Actor in, i.e. the Outer of the Actor. If left as NULL the Outer of the Owner is used. If the Owner is NULL the persistent level is used.
+---@field public OverrideParentComponent UChildActorComponent @The parent component to set the Actor in.
+---@field public SpawnCollisionHandlingOverride ESpawnActorCollisionHandlingMethod @Method for resolving collisions at the spawn point. Undefined means no override, use the actor's setting.
+---@field public bNoFail boolean @Determines whether spawning will not fail if certain conditions are not met. If true, spawning will not fail because the class being spawned is `bStatic=true` or because the class of the template Actor is not the same as the class of the Actor being spawned.
+---@field public bDeferConstruction boolean @Determines whether the construction script will be run. If true, the construction script will not be run on the spawned Actor. Only applicable if the Actor is being spawned from a Blueprint. 
+---@field public bAllowDuringConstructionScript boolean @Determines whether or not the actor may be spawned when running a construction script. If true spawning will fail if a construction script is being run.
+---@field public ObjectFlags EObjectFlags @Flags used to describe the spawned actor/object instance.
+)"));
+            }
+            if (Class == UObject::StaticClass()) {
+                Ret += FString::Printf(TEXT(R"(
+---@param AssetPath string
+---@return any
+function UObject.Load(AssetPath) end
+
+---@param Object UObject
+---@return boolean
+function UObject.IsValid(Object) end
+
+---@return string
+function UObject:GetName() end
+
+---@return UObject
+function UObject:GetOuter() end
+
+---@return UClass
+function UObject:GetClass() end
+
+---@return UWorld
+function UObject:GetWorld() end
+
+---@param Class UClass
+---@return boolean
+function UObject:IsA(Class) end
+
+---Force Release object from lua
+function UObject:Release() end
+
+)"));
+            }
+            if (Class == UClass::StaticClass()) {
+                Ret += FString::Printf(TEXT(R"(
+---Load a class object
+---@param Path string @path to the class
+---@return UClass
+function UClass.Load(Path) end
+
+---Test whether this class is a child of another class
+---@param TargetClass UClass @target class
+---@return boolean @true if this object is of the specified type.
+function UClass:IsChildOf(TargetClass) end
+
+---Get default object of a class.
+---@return UObject @class default obejct
+function UClass:GetDefaultObject() end
+
+)"));
+            }
+            if(!AdditionalContent.IsEmpty())
+            {
+                Ret += "\r\n";
+                Ret += AdditionalContent;
+                Ret += "\r\n";
+            }
+            //--->end
             return Ret;
         }
 
         FString Get(const UFunction* Function, FString ForceClassName)
         {
             FString Ret = GetCommentBlock(Function);
+            //<--- modified by wangxu
             FString Properties;
+            struct FTempName
+            {
+                FString Type;
+                FString Name;
+            };
+            TArray<FTempName> Returns;
+            //--->end
 
             for (TFieldIterator<FProperty> It(Function); It && (It->PropertyFlags & CPF_Parm); ++It)
             {
@@ -212,6 +351,9 @@ namespace UnLua
                     else if (Property->HasAnyPropertyFlags(CPF_OutParm) && !Property->HasAnyPropertyFlags(CPF_ConstParm))
                     {
                         ExtraDesc = TEXT("[out]"); // non-const reference
+                        //<--- modified by wangxu
+                        Returns.Emplace(FTempName{TypeName,PropertyName});
+                        //--->end
                     }
                     Ret += FString::Printf(TEXT("---@param %s %s"), *PropertyName, *TypeName);
                 }
@@ -225,6 +367,32 @@ namespace UnLua
 
                 Ret += TEXT("\r\n");
             }
+            //<--- modified by wangxu
+            if(!Ret.Contains("return") && Function->IsInBlueprint())
+            {
+                FString ReturnType;
+                FString ReturnComment;
+                for (auto R : Returns)
+                {
+                    if(ReturnType.IsEmpty())
+                    {
+                        ReturnType = TEXT("---@return ");
+                        ReturnComment += TEXT(" @");
+                    }else
+                    {
+                        ReturnType += TEXT(",");
+                        ReturnComment += TEXT(",");
+                    }
+                    ReturnType += R.Type;
+                    ReturnComment += R.Name;
+                }
+                if(!ReturnType.IsEmpty())
+                {
+                    Ret = Ret + ReturnType + ReturnComment;
+                    Ret += TEXT("\r\n");
+                }
+            }
+            //--->end
 
             const auto ClassName = ForceClassName.IsEmpty() ? EscapeSymbolName(GetTypeName(Function->GetOwnerClass())) : ForceClassName;
             const auto FunctionName = Function->GetName();
@@ -260,7 +428,14 @@ namespace UnLua
                 AccessLevel = Struct->IsNative() ? "private" : "public";
 
             FString TypeName = IntelliSense::GetTypeName(Property);
-            Ret += FString::Printf(TEXT("---@field %s %s %s"), *AccessLevel, *Property->GetName(), *TypeName);
+            //<--- modified by wangxu
+            FString PropertyName = Property->GetName();
+            if(Cast<UUserDefinedStruct>(Struct) || Cast<UUserDefinedEnum>(Struct))
+            {
+                PropertyName = Property->GetDisplayNameText().ToString();
+            }
+            Ret += FString::Printf(TEXT("---@field %s %s %s"), *AccessLevel, *PropertyName, *TypeName);
+            //--->end
 
             // comment
             const FString& ToolTip = Property->GetMetaData(NAME_ToolTip);
@@ -276,8 +451,14 @@ namespace UnLua
 
             for (const auto Type : AllTypes)
             {
-                if (!Type->IsNative())
-                    continue;
+                if (!Type->IsNative()) {
+                    //<--- modified by wangxu
+                    const UUserDefinedEnum* Enum = Cast<UUserDefinedEnum>(Type);
+                    if (!Type->IsA<UUserDefinedEnum>() && !Type->IsA<UUserDefinedStruct>()) {
+                        continue;
+                    }
+                    //--->end
+                }
 
                 const auto Name = GetTypeName(Type);
                 Content += FString::Printf(TEXT("\r\n    ---@type %s\r\n"), *Name);
@@ -305,8 +486,14 @@ namespace UnLua
             if (!Property)
                 return "Unknown";
 
-            if (CastField<FByteProperty>(Property))
+            //<--- modified by wangxu
+            if (const auto ByteProperty= CastField<FByteProperty>(Property)) {
+                if(const auto Enum = ByteProperty->GetIntPropertyEnum()) {
+                    return Enum->GetName();
+                }
                 return "integer";
+            }
+            //--->end
 
             if (CastField<FInt8Property>(Property))
                 return "integer";
@@ -344,7 +531,9 @@ namespace UnLua
             if (CastField<FClassProperty>(Property))
             {
                 const UClass* Class = ((FClassProperty*)Property)->MetaClass;
-                return FString::Printf(TEXT("TSubclassOf<%s%s>"), Class->GetPrefixCPP(), *Class->GetName());
+                //<--- modified by wangxu
+                return FString::Printf(TEXT("TSubclassOf<%s%s>"), Class->IsNative() ? Class->GetPrefixCPP() : TEXT(""), *Class->GetName());
+                //--->end
             }
 
             if (CastField<FSoftObjectProperty>(Property))
@@ -352,10 +541,14 @@ namespace UnLua
                 if (((FSoftObjectProperty*)Property)->PropertyClass->IsChildOf(UClass::StaticClass()))
                 {
                     const UClass* Class = ((FSoftClassProperty*)Property)->MetaClass;
-                    return FString::Printf(TEXT("TSoftClassPtr<%s%s>"), Class->GetPrefixCPP(), *Class->GetName());
+                    //<--- modified by wangxu
+                    return FString::Printf(TEXT("TSoftClassPtr<%s%s>"), Class->IsNative() ? Class->GetPrefixCPP() : TEXT(""), *Class->GetName());
+                    //--->end
                 }
                 const UClass* Class = ((FSoftObjectProperty*)Property)->PropertyClass;
-                return FString::Printf(TEXT("TSoftObjectPtr<%s%s>"), Class->GetPrefixCPP(), *Class->GetName());
+                //<--- modified by wangxu
+                return FString::Printf(TEXT("TSoftObjectPtr<%s%s>"), Class->IsNative() ? Class->GetPrefixCPP() : TEXT(""), *Class->GetName());
+                //--->end
             }
 
             if (CastField<FObjectProperty>(Property))
@@ -365,7 +558,9 @@ namespace UnLua
                 {
                     return FString::Printf(TEXT("%s"), *Class->GetName());
                 }
-                return FString::Printf(TEXT("%s%s"), Class->GetPrefixCPP(), *Class->GetName());
+                //<--- modified by wangxu
+                return FString::Printf(TEXT("%s%s"), Class->IsNative() ? Class->GetPrefixCPP() : TEXT(""), *Class->GetName());
+                //--->end
             }
 
             if (CastField<FWeakObjectProperty>(Property))
@@ -418,10 +613,81 @@ namespace UnLua
                 return ((FStructProperty*)Property)->Struct->GetStructCPPName();
 
             if (CastField<FDelegateProperty>(Property))
-                return "Delegate";
+            {
+                //<--- modified by wangxu
+                const FDelegateProperty *TempDelegateProperty = CastField<FDelegateProperty>(Property);
+                const UFunction* SignatureFunction = TempDelegateProperty->SignatureFunction;
+                const FString ClassName = SignatureFunction->GetPrefixCPP() + SignatureFunction->GetName();
+                if (!GenDelegates.Contains(ClassName))
+                {
+                    GenDelegates.Add(ClassName);
+                    FString Parameter, ReturnType;
+                    for ( Property = SignatureFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
+                    {
+                        FString TypeName = GetTypeName(Property);
+                        if (Property->PropertyFlags & CPF_ReturnParm)
+                        {
+                            ReturnType = TEXT(" : ") + TypeName;
+                            continue;
+                        }
+                        if (!Parameter.IsEmpty())
+                        {
+                            Parameter += TEXT(", ");
+                        }
+                        Parameter += Property->GetName() + TEXT(" : ") + TypeName;
+                    }
+                    const FString CallbackParameter = Parameter.IsEmpty() ? TEXT("") : (TEXT(", ") + Parameter);
+                    AdditionalContent += FString::Printf(TEXT(R"(---@class %s
+---@field Bind fun(self, SelfFunction : fun(self%s)%s)
+---@field Unbind fun()
+---@field Execute fun(%s) integer
 
+)"), *ClassName, *CallbackParameter, *ReturnType, *Parameter);
+                }
+                //--->end
+                return ClassName;
+            }
+
+            //<--- modified by wangxu
             if (CastField<FMulticastDelegateProperty>(Property))
-                return "MulticastDelegate";
+            {
+                const FMulticastDelegateProperty *TempMulticastDelegateProperty = CastField<FMulticastDelegateProperty>(Property);
+                const UFunction* SignatureFunction = TempMulticastDelegateProperty->SignatureFunction;
+                const FString ClassName = SignatureFunction->GetPrefixCPP() + SignatureFunction->GetName();
+                if (!GenDelegates.Contains(ClassName))
+                {
+                    GenDelegates.Add(ClassName);
+                    FString Parameter, ReturnType;
+                    for ( Property = SignatureFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
+                    {
+                        FString TypeName = GetTypeName(Property);
+                        if (Property->PropertyFlags & CPF_ReturnParm)
+                        {
+                            ReturnType = TEXT(" : ") + TypeName;
+                            continue;
+                        }
+                        if (!Parameter.IsEmpty())
+                        {
+                            Parameter += TEXT(", ");
+                        }
+                        Parameter += Property->GetName() + TEXT(" : ") + TypeName;
+                    }
+                    const FString CallbackParameter = Parameter.IsEmpty() ? TEXT("") : (TEXT(", ") + Parameter);
+                    AdditionalContent += FString::Printf(TEXT(R"(---@class %s
+---@field Add fun(self, SelfFunction : fun(self%s)%s)
+---@field Remove fun(self, SelfFunction : fun(self%s)%s)
+---@field Clear fun()
+---@field Broadcast fun(%s)
+)"), *ClassName, *CallbackParameter, *ReturnType, *CallbackParameter, *ReturnType, *Parameter);
+                }
+                //--->end
+                return ClassName;
+            }
+            //<--- modified by wangxu
+            if (CastField<FFieldPathProperty>(Property)) {
+                return TEXT("FFieldPath");
+            }
+            //--->end
 
             return "Unknown";
         }
@@ -480,6 +746,24 @@ namespace UnLua
                     && Char != '_'
                     && Char < 0x100)
                 {
+                    //<--- modified by wangxu
+                    if (InName.Contains("TArray<")
+                        || InName.Contains("TMap<")
+                        || InName.Contains("TSubclassOf<")
+                        || InName.Contains("TSoftClassPtr<")
+                        || InName.Contains("TSoftObjectPtr<")
+                        || InName.Contains("TWeakObjectPtr<")
+                        || InName.Contains("TLazyObjectPtr<")
+                        || InName.Contains("TScriptInterface<")
+                        || InName.Contains("TSet<") ) {
+                        if (Char == '<'
+                            || Char == '>'
+                            || Char == ' '
+                            || Char == ',') {
+                            continue;
+                            }
+                        }
+                    //--->end
                     Name[Index] = TCHAR('_');
                 }
             }

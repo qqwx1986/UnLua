@@ -97,7 +97,7 @@ static int32 Global_NewObject(lua_State *L)
         return 0;
     }
 
-    UObject* Outer = (NumParams > 1 && lua_isnil(L, 2)) ? (UObject*)GetTransientPackage() : UnLua::GetUObject(L, 2);
+    UObject *Outer = NumParams > 1 ? UnLua::GetUObject(L, 2) : (UObject*)GetTransientPackage();
     if (!Outer)
     {
         UNLUA_LOGERROR(L, LogUnLua, Log, TEXT("%s: Invalid outer!"), ANSI_TO_TCHAR(__FUNCTION__));

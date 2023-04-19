@@ -1,36 +1,37 @@
 --
 -- DESCRIPTION
---
+-- @SEE ${blueprint}
 -- @COMPANY **
--- @AUTHOR **
+-- @AUTHOR ${creator}
 -- @DATE ${date} ${time}
 --
+---@class TemplateName : ${ParentClass}
+---@field Overridden ${ParentClass} @dot Native Blueprint Interface, use like self.Overridden.BlueprintFunc(self)
+---@type TemplateName
+local TemplateName = UnLua.Class()
 
----@type ClassName
-local M = UnLua.Class()
-
--- function M:Initialize(Initializer)
+-- function TemplateName:Initialize(Initializer)
 -- end
 
--- function M:UserConstructionScript()
+-- function TemplateName:UserConstructionScript()
 -- end
 
--- function M:ReceiveBeginPlay()
+-- function TemplateName:ReceiveBeginPlay()
 -- end
 
--- function M:ReceiveEndPlay()
+-- function TemplateName:ReceiveEndPlay(EndPlayReason)
 -- end
 
--- function M:ReceiveTick(DeltaSeconds)
+-- function TemplateName:ReceiveTick(DeltaSeconds)
 -- end
 
--- function M:ReceiveAnyDamage(Damage, DamageType, InstigatedBy, DamageCauser)
+-- function TemplateName:ReceiveAnyDamage(Damage, DamageType, InstigatedBy, DamageCauser)
 -- end
 
--- function M:ReceiveActorBeginOverlap(OtherActor)
+-- function TemplateName:ReceiveActorBeginOverlap(OtherActor)
 -- end
 
--- function M:ReceiveActorEndOverlap(OtherActor)
+-- function TemplateName:ReceiveActorEndOverlap(OtherActor)
 -- end
 
-return M
+return TemplateName
